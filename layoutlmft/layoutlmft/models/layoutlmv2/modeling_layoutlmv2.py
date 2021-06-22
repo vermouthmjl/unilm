@@ -7,8 +7,8 @@ import torch.utils.checkpoint
 from torch import nn
 from torch.nn import CrossEntropyLoss
 
-import detectron2
-from detectron2.modeling import META_ARCH_REGISTRY
+# import detectron2
+# from detectron2.modeling import META_ARCH_REGISTRY
 from transformers import PreTrainedModel
 from transformers.modeling_outputs import (
     BaseModelOutputWithPastAndCrossAttentions,
@@ -529,19 +529,19 @@ def my_convert_sync_batchnorm(module, process_group=None):
     if isinstance(module, torch.nn.modules.batchnorm._BatchNorm):
         return nn.modules.SyncBatchNorm.convert_sync_batchnorm(module, process_group)
     module_output = module
-    if isinstance(module, detectron2.layers.FrozenBatchNorm2d):
-        module_output = torch.nn.SyncBatchNorm(
-            num_features=module.num_features,
-            eps=module.eps,
-            affine=True,
-            track_running_stats=True,
-            process_group=process_group,
-        )
-        module_output.weight = torch.nn.Parameter(module.weight)
-        module_output.bias = torch.nn.Parameter(module.bias)
-        module_output.running_mean = module.running_mean
-        module_output.running_var = module.running_var
-        module_output.num_batches_tracked = torch.tensor(0, dtype=torch.long, device=module.running_mean.device)
+    # if isinstance(module, detectron2.layers.FrozenBatchNorm2d):
+    #     module_output = torch.nn.SyncBatchNorm(
+    #         num_features=module.num_features,
+    #         eps=module.eps,
+    #         affine=True,
+    #         track_running_stats=True,
+    #         process_group=process_group,
+    #     )
+    #     module_output.weight = torch.nn.Parameter(module.weight)
+    #     module_output.bias = torch.nn.Parameter(module.bias)
+    #     module_output.running_mean = module.running_mean
+    #     module_output.running_var = module.running_var
+    #     module_output.num_batches_tracked = torch.tensor(0, dtype=torch.long, device=module.running_mean.device)
     for name, child in module.named_children():
         module_output.add_module(name, my_convert_sync_batchnorm(child, process_group))
     del module
@@ -551,11 +551,11 @@ def my_convert_sync_batchnorm(module, process_group=None):
 class VisualBackbone(nn.Module):
     def __init__(self, config):
         super().__init__()
-        self.cfg = detectron2.config.get_cfg()
+        # self.cfg = detectron2.config.get_cfg()
         add_layoutlmv2_config(self.cfg)
         meta_arch = self.cfg.MODEL.META_ARCHITECTURE
         model = META_ARCH_REGISTRY.get(meta_arch)(self.cfg)
-        assert isinstance(model.backbone, detectron2.modeling.backbone.FPN)
+        # assert isinstance(model.backbone, detectron2.modeling.backbone.FPN)
         self.backbone = model.backbone
         if (
             config.convert_sync_batchnorm
@@ -618,12 +618,12 @@ class LayoutLMv2Model(LayoutLMv2PreTrainedModel):
         self.has_visual_segment_embedding = config.has_visual_segment_embedding
         self.embeddings = LayoutLMv2Embeddings(config)
 
-        self.visual = VisualBackbone(config)
-        self.visual_proj = nn.Linear(config.image_feature_pool_shape[-1], config.hidden_size)
-        if self.has_visual_segment_embedding:
-            self.visual_segment_embedding = nn.Parameter(nn.Embedding(1, config.hidden_size).weight[0])
-        self.visual_LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
-        self.visual_dropout = nn.Dropout(config.hidden_dropout_prob)
+        # self.visual = VisualBackbone(config)
+        # self.visual_proj = nn.Linear(config.image_feature_pool_shape[-1], config.hidden_size)
+        # if self.has_visual_segment_embedding:
+        #     self.visual_segment_embedding = nn.Parameter(nn.Embedding(1, config.hidden_size).weight[0])
+        # self.visual_LayerNorm = nn.LayerNorm(config.hidden_size, eps=config.layer_norm_eps)
+        # self.visual_dropout = nn.Dropout(config.hidden_dropout_prob)
 
         self.encoder = LayoutLMv2Encoder(config)
         self.pooler = LayoutLMv2Pooler(config)
@@ -709,46 +709,46 @@ class LayoutLMv2Model(LayoutLMv2PreTrainedModel):
         visual_shape[1] = self.config.image_feature_pool_shape[0] * self.config.image_feature_pool_shape[1]
         visual_shape = torch.Size(visual_shape)
         final_shape = list(input_shape)
-        final_shape[1] += visual_shape[1]
+        # final_shape[1] += visual_shape[1]
         final_shape = torch.Size(final_shape)
 
-        visual_bbox_x = (
-            torch.arange(
-                0,
-                1000 * (self.config.image_feature_pool_shape[1] + 1),
-                1000,
-                device=device,
-                dtype=bbox.dtype,
-            )
-            // self.config.image_feature_pool_shape[1]
-        )
-        visual_bbox_y = (
-            torch.arange(
-                0,
-                1000 * (self.config.image_feature_pool_shape[0] + 1),
-                1000,
-                device=device,
-                dtype=bbox.dtype,
-            )
-            // self.config.image_feature_pool_shape[0]
-        )
-        visual_bbox = torch.stack(
-            [
-                visual_bbox_x[:-1].repeat(self.config.image_feature_pool_shape[0], 1),
-                visual_bbox_y[:-1].repeat(self.config.image_feature_pool_shape[1], 1).transpose(0, 1),
-                visual_bbox_x[1:].repeat(self.config.image_feature_pool_shape[0], 1),
-                visual_bbox_y[1:].repeat(self.config.image_feature_pool_shape[1], 1).transpose(0, 1),
-            ],
-            dim=-1,
-        ).view(-1, bbox.size(-1))
-        visual_bbox = visual_bbox.repeat(final_shape[0], 1, 1)
-        final_bbox = torch.cat([bbox, visual_bbox], dim=1)
+        # visual_bbox_x = (
+        #     torch.arange(
+        #         0,
+        #         1000 * (self.config.image_feature_pool_shape[1] + 1),
+        #         1000,
+        #         device=device,
+        #         dtype=bbox.dtype,
+        #     )
+        #     // self.config.image_feature_pool_shape[1]
+        # )
+        # visual_bbox_y = (
+        #     torch.arange(
+        #         0,
+        #         1000 * (self.config.image_feature_pool_shape[0] + 1),
+        #         1000,
+        #         device=device,
+        #         dtype=bbox.dtype,
+        #     )
+        #     // self.config.image_feature_pool_shape[0]
+        # )
+        # visual_bbox = torch.stack(
+        #     [
+        #         visual_bbox_x[:-1].repeat(self.config.image_feature_pool_shape[0], 1),
+        #         visual_bbox_y[:-1].repeat(self.config.image_feature_pool_shape[1], 1).transpose(0, 1),
+        #         visual_bbox_x[1:].repeat(self.config.image_feature_pool_shape[0], 1),
+        #         visual_bbox_y[1:].repeat(self.config.image_feature_pool_shape[1], 1).transpose(0, 1),
+        #     ],
+        #     dim=-1,
+        # ).view(-1, bbox.size(-1))
+        # visual_bbox = visual_bbox.repeat(final_shape[0], 1, 1)
+        final_bbox = bbox
 
         if attention_mask is None:
             attention_mask = torch.ones(input_shape, device=device)
 
-        visual_attention_mask = torch.ones(visual_shape, device=device)
-        final_attention_mask = torch.cat([attention_mask, visual_attention_mask], dim=1)
+        # visual_attention_mask = torch.ones(visual_shape, device=device)
+        final_attention_mask = attention_mask
 
         if token_type_ids is None:
             token_type_ids = torch.zeros(input_shape, dtype=torch.long, device=device)
@@ -758,10 +758,10 @@ class LayoutLMv2Model(LayoutLMv2PreTrainedModel):
             position_ids = self.embeddings.position_ids[:, :seq_length]
             position_ids = position_ids.expand_as(input_ids)
 
-        visual_position_ids = torch.arange(0, visual_shape[1], dtype=torch.long, device=input_ids.device).repeat(
-            input_shape[0], 1
-        )
-        final_position_ids = torch.cat([position_ids, visual_position_ids], dim=1)
+        # visual_position_ids = torch.arange(0, visual_shape[1], dtype=torch.long, device=input_ids.device).repeat(
+        #     input_shape[0], 1
+        # )
+        final_position_ids = position_ids
 
         if bbox is None:
             bbox = torch.zeros(tuple(list(input_shape) + [4]), dtype=torch.long, device=device)
@@ -773,12 +773,12 @@ class LayoutLMv2Model(LayoutLMv2PreTrainedModel):
             position_ids=position_ids,
         )
 
-        visual_emb = self._calc_img_embeddings(
-            image=image,
-            bbox=visual_bbox,
-            position_ids=visual_position_ids,
-        )
-        final_emb = torch.cat([text_layout_emb, visual_emb], dim=1)
+        # visual_emb = self._calc_img_embeddings(
+        #     image=image,
+        #     bbox=visual_bbox,
+        #     position_ids=visual_position_ids,
+        # )
+        final_emb = text_layout_emb
 
         extended_attention_mask = final_attention_mask.unsqueeze(1).unsqueeze(2)
 
