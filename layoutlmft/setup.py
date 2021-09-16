@@ -6,6 +6,6 @@ setup(
     author="LayoutLM Team",
     url="https://github.com/microsoft/unilm/tree/master/layoutlmft",
     packages=find_packages(),
-    python_requires=">=3.7",
+    python_requires=">=3.6.1",
     extras_require={"dev": ["flake8", "isort", "black"]},
 )
